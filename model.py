@@ -61,6 +61,17 @@ class Model():
             ##################
             # Your Code here
             ##################
+            # 堆叠多个lstm层，每层神经元个数为rnn_size个
+            def aCell(lstm_size, keep_prob):
+                cell = tf.nn.rnn_cell.BasicLSTMCell(lstm_size)
+                drop_cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=keep_prob)
+                return drop_cell
+            cell = tf.nn.rnn_cell.MultiRNNCell([aCell(self.rnn_size, self.keep_prob) for _ in range(self.rnn_layers)])
+            self.state_tensor = cell.zero_state(self.batch_size, tf.float32)
+            # 通过dynamic_rnn对cell展开时间维度
+            self.rnn_outputs, self.outputs_state_tensor = tf.nn.dynamic_rnn(cell, data, initial_state=self.state_tensor)
+            # self.rnn_outputs的维度是（batch，num_steps，rnn_size），concat后在time_step上减少一个维度
+            seq_output = tf.concat(self.rnn_outputs, 1)   #这一步不是必须的，删掉也OK
 
         # flatten it
         seq_output_final = tf.reshape(seq_output, [-1, self.dim_embedding])
@@ -69,6 +80,9 @@ class Model():
             ##################
             # Your Code here
             ##################
+            softmax_w = tf.Variable(tf.truncated_normal([self.rnn_size, self.num_words], stddev=0.1))
+            softmax_b = tf.Variable(tf.zeros(self.num_words))
+            logits = tf.matmul(seq_output_final, softmax_w) + softmax_b    # 最终shape是 （batch * num_steps）行，num_words列
 
         tf.summary.histogram('logits', logits)
 

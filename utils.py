@@ -31,7 +31,23 @@ def get_train_data(vocabulary, batch_size, num_steps):
     ##################
     # Your Code here
     ##################
+    # 将字符型vocabulary列表编码为整数vocabulary_int列表
+    vocabulary_int = vocabulary_to_inter(vocabulary)
 
+    #  每次从data中取出（batch_size行，num_steps列）个元素，每个元素都是整数
+    t = ( len(vocabulary_int) // (batch_size*num_steps) )* (batch_size*num_steps)   # 防止data长度不能被batch_size、num_steps整除
+    data_x = vocabulary_int[0:t]                 # 取出对应x长度数据
+    data_y = np.zeros_like(data_x)
+    data_y[ :-1], data_y[-1] = data_x[1:], data_x[0]   # Y数据是x数据右移一位的结果
+
+    x_batch = data_x.reshape((batch_size, -1))      # reshape成batch_size行，每一行再拆分成若干个num_steps
+    y_batch = data_y.reshape((batch_size, -1))      # reshape成batch_size行，每一行再拆分成若干个num_steps
+
+    while True:
+        for n in range(0, x_batch.shape[1], num_steps):  # 以num_steps步进
+            x = x_batch[:, n:n + num_steps]           # 行表示batch_size，列表示num_steps
+            y = y_batch[:, n:n + num_steps]           # 行表示batch_size，列表示num_steps
+            yield x, y  
 
 def build_dataset(words, n_words):
     """Process raw inputs into a dataset."""

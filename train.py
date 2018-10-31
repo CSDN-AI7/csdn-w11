@@ -53,11 +53,15 @@ with tf.Session() as sess:
     for x in range(1):
         logging.debug('epoch [{0}]....'.format(x))
         state = sess.run(model.state_tensor)
-        for dl in utils.get_train_data(vocabulary, batch_size=FLAGS.batch_size, num_steps=FLAGS.num_steps):
+        for x,y in utils.get_train_data(vocabulary, batch_size=FLAGS.batch_size, num_steps=FLAGS.num_steps):
 
             ##################
             # Your Code here
             ##################
+            feed_dict = {model.X: x,
+                    model.Y: y,
+                    model.keep_prob: 0.85,
+                    model.state_tensor: state}
 
             gs, _, state, l, summary_string = sess.run(
                 [model.global_step, model.optimizer, model.outputs_state_tensor, model.loss, model.merged_summary_op], feed_dict=feed_dict)
@@ -67,4 +71,5 @@ with tf.Session() as sess:
                 logging.debug('step [{0}] loss [{1}]'.format(gs, l))
                 save_path = saver.save(sess, os.path.join(
                     FLAGS.output_dir, "model.ckpt"), global_step=gs)
+
     summary_string_writer.close()
