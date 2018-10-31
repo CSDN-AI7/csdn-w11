@@ -22,6 +22,8 @@ logging.basicConfig(
 vocabulary = read_data(FLAGS.text)
 print('Data size', len(vocabulary))
 
+# 将字符型vocabulary列表编码为整数vocabulary_int列表
+vocabulary_int = utils.vocabulary_to_inter(vocabulary)
 
 with open(FLAGS.dictionary, encoding='utf-8') as inf:
     dictionary = json.load(inf, encoding='utf-8')
@@ -29,10 +31,8 @@ with open(FLAGS.dictionary, encoding='utf-8') as inf:
 with open(FLAGS.reverse_dictionary, encoding='utf-8') as inf:
     reverse_dictionary = json.load(inf, encoding='utf-8')
 
-
 model = Model(learning_rate=FLAGS.learning_rate, batch_size=FLAGS.batch_size, num_steps=FLAGS.num_steps)
 model.build()
-
 
 with tf.Session() as sess:
     summary_string_writer = tf.summary.FileWriter(FLAGS.output_dir, sess.graph)
@@ -50,14 +50,18 @@ with tf.Session() as sess:
     except Exception:
         logging.debug('no check point found....')
 
-    for x in range(1):
-        logging.debug('epoch [{0}]....'.format(x))
-        state = sess.run(model.state_tensor)
-        for x,y in utils.get_train_data(vocabulary, batch_size=FLAGS.batch_size, num_steps=FLAGS.num_steps):
+
+    max_steps = ( len(vocabulary_int)//(FLAGS.batch_size*FLAGS.num_steps) )  # 以num_steps为基本单位计算
+    step=0
+    for epoc in range(1):
+        #logging.debug('epoch [{0}]....'.format(epoc))
+        state = sess.run(model.state_tensor)   # RNN的起始状态
+        for x, y in utils.get_train_data(vocabulary_int, batch_size=FLAGS.batch_size, num_steps=FLAGS.num_steps):
 
             ##################
             # Your Code here
             ##################
+            step += 1
             feed_dict = {model.X: x,
                     model.Y: y,
                     model.keep_prob: 0.85,
@@ -67,9 +71,13 @@ with tf.Session() as sess:
                 [model.global_step, model.optimizer, model.outputs_state_tensor, model.loss, model.merged_summary_op], feed_dict=feed_dict)
             summary_string_writer.add_summary(summary_string, gs)
 
-            if gs % 10 == 0:
+            if gs % (max_steps //10) == 0:
                 logging.debug('step [{0}] loss [{1}]'.format(gs, l))
-                save_path = saver.save(sess, os.path.join(
-                    FLAGS.output_dir, "model.ckpt"), global_step=gs)
+
+            if gs % (max_steps //4)== 0:
+                save_path = saver.save(sess, os.path.join(FLAGS.output_dir, "model.ckpt"), global_step=gs)
+
+            if step>=max_steps:
+                break
 
     summary_string_writer.close()

@@ -80,3 +80,4 @@ with tf.Session() as sess:
 
         logging.debug('==============[{0}]=============='.format(title))
         logging.debug(sentence)
+

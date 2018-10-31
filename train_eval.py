@@ -22,6 +22,7 @@ if __name__ == '__main__':
 
     for i in range(30):
        # train 1 epoch
+        print('################   epoch: %d    ################'%(i))
         print('################    train    ################')
         p = os.popen('python ./train.py' + cmd)
         for l in p:
